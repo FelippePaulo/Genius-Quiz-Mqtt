@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contador de Vitórias</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        #contador, #recorde {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px;
+        }
+        #conteudo {
+            display: none;  /* Oculta o conteúdo inicialmente */
+        }
+    </style>
+</head>
+<body>
+    <h1>Contador de Vitórias Consecutivas</h1>
+    <div id="conteudo">
+        <div id="contador">0</div>
+        <div id="recorde">Recorde: 0</div>  <!-- Adiciona o elemento de recorde -->
+    </div>
+
+    <script>
+        // Variável de senha estática
+        const senhaCorreta = "GENIUS"; 
+
+        // Solicita a senha ao usuário
+        const senhaInserida = prompt("Digite a senha para acessar:");
+
+        // Verifica se a senha está correta
+        if (senhaInserida === senhaCorreta) {
+            document.getElementById('conteudo').style.display = 'block';  // Exibe o conteúdo
+
+            // Configuração do cliente MQTT
+            const client = mqtt.connect('ws://test.mosquitto.org:8080');
+
+            let recorde = 0;  // Variável para armazenar o recorde de vitórias consecutivas
+
+            client.on('connect', () => {
+                console.log('Conectado ao broker MQTT');
+                client.subscribe('jogo_memoria/vitorias', (err) => {
+                    if (err) {
+                        console.error('Erro ao assinar o tópico:', err);
+                    }
+                });
+            });
+
+            client.on('message', (topic, message) => {
+                if (topic === 'jogo_memoria/vitorias') {
+                    // Converte a mensagem para string e extrai o número
+                    const mensagem = message.toString();
+                    const partes = mensagem.split(':');
+                    const contador = parseInt(partes[1].trim(), 10);  // Converte a parte numérica para inteiro
+                    document.getElementById('contador').textContent = contador;
+
+                    // Atualiza o recorde se o contador atual for maior
+                    if (contador > recorde) {
+                        recorde = contador;
+                        document.getElementById('recorde').textContent = `Recorde: ${recorde}`;
+                    }
+                }
+            });
+
+            client.on('error', (err) => {
+                console.error('Erro no cliente MQTT:', err);
+            });
+        } else {
+            alert("Senha incorreta! Acesso negado.");  // Exibe uma mensagem de erro
+        }
+    </script>
+</body>
+</html>
